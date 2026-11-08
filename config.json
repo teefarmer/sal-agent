@@ -17,7 +17,7 @@
     "MAHSANI_ASHUK_NEW_SOURCE",
     "NETIV_HASED"
   ],
-  "min_coverage": 0.8,
+  "min_coverage": 0.6,
   "good_deal_percent": 25,
   "city_codes": [
     "3000",

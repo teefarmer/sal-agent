@@ -133,7 +133,7 @@ def store_in_area(k, cities, codes):
     """match on the City field only (it holds a name or a CBS city code).
     Addresses are not used: many towns have a 'שדרות ירושלים' street."""
     city = (k.get("city") or "").strip()
-    if city:
+    if city and city.strip("0"):
         return norm_code(city) in codes or any(c in city for c in cities)
     return any(c in (k.get("storename") or "") for c in cities)
 
@@ -152,12 +152,14 @@ def find_local_stores(cfg):
         root = parse_xml(files[-1])  # newest stores file
         if root is None:
             continue
-        seen, total = set(), 0
+        seen, total, samples = set(), 0, set()
         for el in root.iter():
             k = kids(el)
             if "storeid" not in k or not ({"city", "address", "storename"} & k.keys()):
                 continue
             total += 1
+            if len(samples) < 12:
+                samples.add(f'{k.get("city", "")}/{k.get("storename", "")}')
             if not store_in_area(k, cities, codes):
                 continue
             sid = norm_code(k["storeid"])
@@ -170,6 +172,8 @@ def find_local_stores(cfg):
                 "address": k.get("address", ""), "city": k.get("city", ""),
             })
         log(f"  {CHAIN_NAMES.get(chain, chain)}: {len(seen)} סניפים באזור מתוך {total}")
+        if not seen:
+            log(f"    דוגמאות עיר/סניף: {sorted(samples)}")
     return stores
 
 
@@ -424,6 +428,13 @@ def main():
         download_prices(cfg, stores)
     ranked, partial = compute(cfg, basket, stores)
     deals = other_brand_deals(cfg, basket, ranked)
+    if ranked:
+        best = {l["name"]: l for l in ranked[0]["lines"] if l["weekly"] and l.get("found")}
+        for r in ranked + partial:
+            mine = {l["name"]: l for l in r["lines"] if l["weekly"] and l.get("found")}
+            com = set(best) & set(mine)
+            r["same_items"] = {"n": len(com), "here": round(sum(mine[n]["cost"] for n in com), 2),
+                               "best": round(sum(best[n]["cost"] for n in com), 2)}
     write_outputs(cfg, ranked, partial, deals, len(stores))
     if ranked:
         b = ranked[0]
