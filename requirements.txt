@@ -1,0 +1,2 @@
+il-supermarket-scraper==1.0.8
+lxml>=5.2.1,<6

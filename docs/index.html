@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>איפה הסל הכי זול</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=Assistant:wght@400;600&display=swap">
+<style>
+/* layout: one column; winner first, then ranking with expandable rows, then other-brand deals */
+:root{--bg:#f6f7f4;--paper:#fff;--ink:#1f2620;--muted:#6b7468;--line:#dfe3db;--accent:#2f6b3a;--accent-soft:#e3efe4;--warn:#9a5b12;
+--display:"Rubik","Assistant",system-ui,sans-serif;--body:"Assistant",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#141815;--paper:#1c211d;--ink:#e6ebe4;--muted:#97a093;--line:#2d342e;--accent:#7cc48a;--accent-soft:#223326;--warn:#e0a35a;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:760px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+h1{font-family:var(--display);font-size:1.7rem;margin:0}
+h2{font-family:var(--display);font-size:1.15rem;margin:32px 0 8px}
+.muted{color:var(--muted)}
+.win{margin-top:16px;background:var(--accent-soft);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline}
+.win .big{font-family:var(--display);font-size:2.2rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+.win .where{font-weight:600;font-size:1.1rem}
+.tbl{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tbl td,.tbl th{padding:10px;text-align:right;border-top:1px solid var(--line);vertical-align:top}
+.tbl th{font-weight:600;color:var(--muted);font-size:.85rem;border-top:0}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.row{cursor:pointer}tr.row:hover{background:var(--accent-soft)}
+tr.row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pill{display:inline-block;font-size:.8rem;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.det td{background:var(--bg);font-size:.9rem}
+.det table{width:100%;border-collapse:collapse}
+.det td td{padding:4px 6px;border-top:1px dashed var(--line);background:none}
+.miss{color:var(--warn)}
+.promo{color:var(--accent);font-size:.8rem}
+.scroll{overflow-x:auto}
+.deal{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px}
+.deal b{font-family:var(--display)}
+.note{color:var(--muted);font-size:.85rem;margin-top:32px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const DATA=/*__DATA__*/null;
+const app=document.getElementById('app');
+const f=n=>'₪'+Number(n).toLocaleString('he-IL',{minimumFractionDigits:0,maximumFractionDigits:0});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){
+ if(!DATA||!DATA.ranked){app.innerHTML='<h1>איפה הסל הכי זול</h1><p class="muted">עדיין אין נתונים. העמוד יתעדכן אחרי ההרצה הראשונה.</p>';return}
+ const R=DATA.ranked,b=R[0];
+ const ref=R.find(r=>r.chain==='OSHER_AD'&&/גבעת שאול/.test(r.name+r.address));
+ let h=`<h1>איפה הסל הכי זול</h1><div class="muted">עודכן ${esc(DATA.updated)} · נבדקו ${DATA.stores_checked} סניפים ב${esc(DATA.cities.slice(0,2).join(' וב'))}</div>`;
+ if(b){h+=`<div class="win"><div><div class="muted">הסל הזול השבוע</div><div class="where">${esc(b.chain_name)} · ${esc(b.name)}</div><div class="muted">${esc(b.address)} ${esc(b.city)}</div></div><div class="big">${f(b.total)}</div>`+
+  (ref&&ref!==b?`<div>חיסכון מול אושר עד גבעת שאול: <b>${f(ref.total-b.total)}</b></div>`:'')+`</div>`}
+ h+=`<h2>דירוג סניפים</h2><p class="muted" style="margin:0 0 8px">לחיצה על שורה מציגה את המחיר של כל פריט. פריט שחסר בסניף מחושב לפי המחיר שלך באושר עד.</p><div class="scroll"><table class="tbl"><tr><th>#</th><th>סניף</th><th>סל</th><th>נמצאו</th></tr>`;
+ R.slice(0,15).forEach((r,i)=>{h+=`<tr class="row" tabindex="0" data-i="${i}"><td class="num">${i+1}</td><td><b>${esc(r.chain_name)}</b> ${esc(r.name)}<br><span class="muted" style="font-size:.85rem">${esc(r.address)}</span>${r.saved_by_promos>1?` <span class="pill">מבצעים חסכו ${f(r.saved_by_promos)}</span>`:''}</td><td class="num"><b>${f(r.total)}</b></td><td class="num">${r.found}/${r.n_items}</td></tr><tr class="det" id="d${i}" hidden><td colspan="4">${detail(r)}</td></tr>`});
+ h+='</table></div>';
+ if(DATA.deals.length){h+=`<h2>מבצעים על מותגים אחרים · לשיקולך</h2><p class="muted" style="margin:0">לא נכנסו לחישוב. מוצגים רק כשההנחה גדולה וזה יוצא זול יותר מהמוצר שלך.</p>`;
+  DATA.deals.forEach(d=>{h+=`<div class="deal"><b>${esc(d.item)}</b> במקום ${esc(d.instead_of)}<br>${esc(d.deal)} · ${f(d.unit_price)} ליח' במקום ${f(d.your_price)} (${d.off}% הנחה)<br><span class="muted">${esc(d.store)} · עד ${esc(d.until)}</span></div>`})}
+ if(DATA.partial.length){h+=`<h2>סניפים שחסרים בהם הרבה פריטים</h2><p class="muted">${DATA.partial.map(r=>esc(r.chain_name+' '+r.name)+` (${r.found}/${r.n_items})`).join(' · ')}</p>`}
+ if(DATA.history&&DATA.history.length>1){h+=`<h2>הסל הזול לאורך השבועות</h2><div class="scroll"><table class="tbl"><tr><th>תאריך</th><th>סל</th><th>סניף</th></tr>${DATA.history.slice().reverse().map(x=>`<tr><td class="num">${esc(x.date)}</td><td class="num">${f(x.best)}</td><td>${esc(x.store)}</td></tr>`).join('')}</table></div>`}
+ h+=`<p class="note">המחירים נלקחים מקבצי השקיפות שהרשתות מחויבות לפרסם לפי חוק. מבצעי מועדון לא נכנסים לחישוב ומסומנים בנפרד. ירקות ומוצרים במשקל מותאמים לפי שם, ולכן המחיר שלהם משוער.</p>`;
+ app.innerHTML=h;
+ app.querySelectorAll('tr.row').forEach(tr=>{const t=()=>{const d=document.getElementById('d'+tr.dataset.i);d.hidden=!d.hidden};tr.onclick=t;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}}});
+}
+function detail(r){let h='<table>';r.lines.filter(l=>l.weekly).forEach(l=>{h+=`<tr><td>${esc(l.name)}${l.how==='name'?' <span class="pill">לפי שם</span>':''}${l.promo?`<div class="promo">${esc(l.promo)}</div>`:''}${l.club?`<div class="muted" style="font-size:.8rem">מועדון: ${esc(l.club)}</div>`:''}</td><td class="num">${l.qty} ${esc(l.unit)}</td><td class="num ${l.found?'':'miss'}">${l.found?f(l.cost):'חסר'}</td></tr>`});return h+'</table>'}
+render();
+</script>
+</body>
+</html>
