@@ -129,25 +129,36 @@ def download_prices(cfg, stores):
 
 # ---------------------------------------------------------------- stores
 
+def store_in_area(k, cities, codes):
+    """match on the City field only (it holds a name or a CBS city code).
+    Addresses are not used: many towns have a 'שדרות ירושלים' street."""
+    city = (k.get("city") or "").strip()
+    if city:
+        return norm_code(city) in codes or any(c in city for c in cities)
+    return any(c in (k.get("storename") or "") for c in cities)
+
+
 def find_local_stores(cfg):
     cities = [c.strip() for c in cfg["cities"]]
+    codes = {norm_code(c) for c in cfg.get("city_codes", [])}
     stores = []
     for chain in cfg["chains"]:
         folder = chain_folder(chain)
         files = sorted((p for p in folder.rglob("*") if p.is_file() and "store" in p.name.lower()),
                        key=lambda p: p.name)
         if not files:
+            log(f"  {CHAIN_NAMES.get(chain, chain)}: לא הורד קובץ סניפים")
             continue
         root = parse_xml(files[-1])  # newest stores file
         if root is None:
             continue
-        seen = set()
+        seen, total = set(), 0
         for el in root.iter():
             k = kids(el)
             if "storeid" not in k or not ({"city", "address", "storename"} & k.keys()):
                 continue
-            text = " ".join([k.get("city", ""), k.get("address", ""), k.get("storename", "")])
-            if not any(c in text for c in cities):
+            total += 1
+            if not store_in_area(k, cities, codes):
                 continue
             sid = norm_code(k["storeid"])
             if not sid or sid in seen:
@@ -158,6 +169,7 @@ def find_local_stores(cfg):
                 "store_id": sid, "name": k.get("storename", ""),
                 "address": k.get("address", ""), "city": k.get("city", ""),
             })
+        log(f"  {CHAIN_NAMES.get(chain, chain)}: {len(seen)} סניפים באזור מתוך {total}")
     return stores
 
 
@@ -248,6 +260,11 @@ def is_barcode(code):
     return len(code) >= 8 and not code.startswith("900")
 
 
+def shares_word(a, b):
+    wa = {w for w in tokens(a) if len(w) > 2}
+    return any(w in b for w in wa)
+
+
 def match_item(row, prices):
     """returns (item, how) or (None, None)"""
     code = norm_code(row["barcode"])
@@ -255,13 +272,19 @@ def match_item(row, prices):
         return prices[code], "barcode"
     if is_barcode(code):
         return None, None
-    # chain-internal code (produce / store items): match by name words
-    want = tokens(row["name"])
-    if not want:
+    # short code from the Osher Ad receipt.
+    # 1) often it is the tail of the real barcode (e.g. 66318 -> 7290000066318)
+    if len(code) >= 5:
+        tails = [it for c, it in prices.items()
+                 if len(c) >= 12 and c.endswith(code) and shares_word(row["name"], it["name"])]
+        if len(tails) == 1:
+            return tails[0], "barcode"
+    # 2) fresh produce sold by weight: match on the exact produce name
+    if row["unit"] != 'ק"ג':
         return None, None
-    weighted = row["unit"] == 'ק"ג'
-    cands = [it for it in prices.values()
-             if all(w in it["name"] for w in want) and (it["weighted"] == weighted or not weighted)]
+    want = " ".join(tokens(row["name"]))
+    cands = [it for it in prices.values() if it["weighted"]
+             and (it["name"].strip() == want or it["name"].startswith(want + " "))]
     if not cands:
         return None, None
     return min(cands, key=lambda it: it["price"]), "name"

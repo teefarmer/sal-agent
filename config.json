@@ -1,8 +1,26 @@
 {
-  "cities": ["ירושלים", "מבשרת ציון", "מבשרת"],
-  "chains": ["OSHER_AD", "RAMI_LEVY", "SHUFERSAL", "YOHANANOF", "VICTORY_NEW_SOURCE",
-             "YAYNO_BITAN_AND_CARREFOUR", "HAZI_HINAM", "SUPER_YUDA", "TIV_TAAM",
-             "MAHSANI_ASHUK_NEW_SOURCE", "NETIV_HASED"],
+  "cities": [
+    "ירושלים",
+    "מבשרת ציון",
+    "מבשרת"
+  ],
+  "chains": [
+    "OSHER_AD",
+    "RAMI_LEVY",
+    "SHUFERSAL",
+    "YOHANANOF",
+    "VICTORY_NEW_SOURCE",
+    "YAYNO_BITAN_AND_CARREFOUR",
+    "HAZI_HINAM",
+    "SUPER_YUDA",
+    "TIV_TAAM",
+    "MAHSANI_ASHUK_NEW_SOURCE",
+    "NETIV_HASED"
+  ],
   "min_coverage": 0.8,
-  "good_deal_percent": 25
+  "good_deal_percent": 25,
+  "city_codes": [
+    "3000",
+    "1015"
+  ]
 }
